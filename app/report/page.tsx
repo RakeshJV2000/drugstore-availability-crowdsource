@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -150,11 +151,13 @@ export default function ReportPage() {
 
         <div className="grid gap-1">
           <Label htmlFor="address">Address</Label>
-          <Input
-            id="address"
-            placeholder="123 Main St, City, ST"
+          <AddressAutocomplete
             value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            onChange={(v) => setForm({ ...form, address: v })}
+            onSelect={(s) => setForm({ ...form, address: s.label, lat: s.lat.toString(), lng: s.lng.toString() })}
+            placeholder="Store name or address (e.g., Walgreens, 123 Main St)"
+            proximity={form.lat && form.lng ? { lat: parseFloat(form.lat), lng: parseFloat(form.lng) } : null}
+            types="poi,address"
           />
         </div>
 

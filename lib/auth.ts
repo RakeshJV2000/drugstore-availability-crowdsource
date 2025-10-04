@@ -22,15 +22,36 @@ export async function getOrCreateSessionUser(): Promise<SessionUser | null> {
 
     let user = await prisma.user.findUnique({ where: { authSub: sub } });
     if (!user) {
-      const handle = generateHandle(sub);
-      user = await prisma.user.create({
-        data: {
-          authProvider: "AUTH0",
-          authSub: sub,
-          email,
-          handle,
-        },
-      });
+      // Create with a unique handle; retry on rare collisions
+      for (let i = 0; i < 5; i++) {
+        const handle = generateHandle(sub + ":" + i + ":" + Date.now());
+        try {
+          user = await prisma.user.create({
+            data: {
+              authProvider: "AUTH0",
+              authSub: sub,
+              email,
+              handle,
+            },
+          });
+          break;
+        } catch (e: any) {
+          // Prisma unique constraint error code P2002
+          if (e?.code !== "P2002") throw e;
+        }
+      }
+      if (!user) throw new Error("Failed to create user");
+    } else if (!user.handle) {
+      // Backfill a missing handle for legacy users
+      for (let i = 0; i < 5; i++) {
+        const handle = generateHandle(sub + ":" + i + ":" + Date.now());
+        try {
+          user = await prisma.user.update({ where: { id: user.id }, data: { handle } });
+          break;
+        } catch (e: any) {
+          if (e?.code !== "P2002") throw e;
+        }
+      }
     }
     return { id: user.id, handle: user.handle };
   } catch {
@@ -43,4 +64,3 @@ export async function requireSessionUser(): Promise<SessionUser> {
   if (!u) throw Object.assign(new Error("Unauthorized"), { status: 401 });
   return u;
 }
-

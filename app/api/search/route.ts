@@ -55,7 +55,15 @@ export async function GET(req: Request) {
   if (!drug) return NextResponse.json({ results: [] });
 
   const aggregates = await prisma.statusAggregate.findMany({
-    where: { drugId: drug.id, pharmacy: { lat: { gte: bounds.minLat, lte: bounds.maxLat }, lng: { gte: bounds.minLng, lte: bounds.maxLng } } },
+    where: {
+      drugId: drug.id,
+      // Only show locations that are not OUT of stock
+      status: { not: ReportStatus.OUT },
+      pharmacy: {
+        lat: { gte: bounds.minLat, lte: bounds.maxLat },
+        lng: { gte: bounds.minLng, lte: bounds.maxLng }
+      }
+    },
     include: { pharmacy: true }
   });
 

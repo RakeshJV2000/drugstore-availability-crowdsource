@@ -99,7 +99,11 @@ const SelectItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
-      "focus:bg-neutral-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Add border for highlighted state; keep light mode with subtle bg, dark mode transparent with white border
+      "border border-transparent",
+      "data-[highlighted]:bg-neutral-100",
+      "dark:data-[highlighted]:bg-transparent dark:data-[highlighted]:border dark:data-[highlighted]:border-white",
+      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}

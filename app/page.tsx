@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 type SearchResult = {
   pharmacy: {
@@ -28,9 +29,11 @@ export default function HomePage() {
   const [mode, setMode] = useState<"drug" | "store">("drug");
   const [drug, setDrug] = useState("");
   const [storeQ, setStoreQ] = useState("");
+  const [storeInput, setStoreInput] = useState("");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [radius, setRadius] = useState("10");
+  const [areaAddr, setAreaAddr] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export default function HomePage() {
     try {
       const params = new URLSearchParams({ lat, lng, radiusKm: radius, mode });
       if (mode === "drug") params.set("drug", drug);
-      else params.set("q", storeQ);
+      else params.set("q", storeQ || storeInput);
       const res = await fetch(`/api/search?${params.toString()}`);
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -113,8 +116,21 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid gap-1">
-            <Label htmlFor="store">Store</Label>
-            <Input id="store" placeholder="Store name (e.g., Walgreens)" value={storeQ} onChange={(e) => setStoreQ(e.target.value)} />
+            <Label htmlFor="store">Store or address</Label>
+            <AddressAutocomplete
+              value={storeInput}
+              onChange={setStoreInput}
+              onSelect={(s) => {
+                setStoreInput(s.label);
+                // Use the feature title (brand/name) for store query when available
+                if (s.title) setStoreQ(s.title);
+                setLat(s.lat.toString());
+                setLng(s.lng.toString());
+              }}
+              placeholder="Type store name (e.g., Walgreens) or address"
+              proximity={lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null}
+              types="poi,address"
+            />
           </div>
         )}
         <div className="flex gap-2 items-center">
@@ -123,7 +139,7 @@ export default function HomePage() {
           <Input placeholder="Radius (km)" value={radius} onChange={(e) => setRadius(e.target.value)} className="w-32" />
           <Button type="button" variant="outline" onClick={useMyLocation}>Use my location</Button>
         </div>
-        <Button onClick={search} disabled={loading || !lat || !lng || (mode === "drug" ? !drug : !storeQ)}>Search</Button>
+        <Button onClick={search} disabled={loading || !lat || !lng || (mode === "drug" ? !drug : !(storeQ || storeInput))}>Search</Button>
       </div>
 
       {loading && <p>Searching…</p>}
