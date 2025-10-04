@@ -149,6 +149,25 @@ export default function AdminPage() {
                   <div>Role: {u.role}</div>
                   <div>Reports: {u._count.reports}</div>
                   <div>Joined: {new Date(u.createdAt).toLocaleDateString()}</div>
+                  <div className="mt-2 flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        if (!confirm(`Delete user ${u.handle || u.email || u.id}? This cannot be undone.`)) return;
+                        try {
+                          const res = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                          if (!res.ok) throw new Error(await res.text());
+                          toast({ title: 'User deleted' });
+                          loadUsers();
+                          loadStats();
+                        } catch (e: any) {
+                          toast({ title: 'Delete failed', description: e?.message || '', variant: 'destructive' });
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -170,6 +189,25 @@ export default function AdminPage() {
                   <div className="text-right text-sm">
                     <div>Reports: {d.reports}</div>
                     <div>In stock: {d.inStock} • Low: {d.low} • Out: {d.out} • Unknown: {d.unknown}</div>
+                    <div className="mt-2 flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          if (!confirm(`Delete drug ${d.name}? This will remove its reports and aggregates.`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/drugs/${d.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                            if (!res.ok) throw new Error(await res.text());
+                            toast({ title: 'Drug deleted' });
+                            loadDrugs();
+                            loadStats();
+                          } catch (e: any) {
+                            toast({ title: 'Delete failed', description: e?.message || '', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
