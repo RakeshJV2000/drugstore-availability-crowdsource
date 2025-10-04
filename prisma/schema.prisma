@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PUBLIC
+  STAFF
+  MODERATOR
+  ADMIN
+}
+
+enum ReportStatus {
+  IN_STOCK
+  LOW
+  OUT
+  UNKNOWN
+}
+
+enum ReportSource {
+  PUBLIC
+  STAFF
+  IMPORT
+}
+
+enum FlagEntityType {
+  REPORT
+  PHARMACY
+  USER
+}
+
+enum FlagState {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  role         UserRole @default(PUBLIC)
+  reputation   Int      @default(0)
+  pharmacy     Pharmacy? @relation("PharmacyUsers", fields: [pharmacyId], references: [id])
+  pharmacyId   String?
+  createdAt    DateTime @default(now())
+  reports      AvailabilityReport[]
+  auditLogs    AuditLog[] @relation("AuditActor")
+  flags        Flag[]     @relation("FlagCreator")
+  watchlist    Watchlist[]
+  claimedPharmacies Pharmacy[] @relation("PharmacyClaim")
+}
+
+model Pharmacy {
+  id               String    @id @default(cuid())
+  name             String
+  address          String
+  city             String?
+  state            String?
+  postalCode       String?
+  lat              Float
+  lng              Float
+  phone            String?
+  verified         Boolean   @default(false)
+  claimedByUser    User?     @relation("PharmacyClaim", fields: [claimedByUserId], references: [id])
+  claimedByUserId  String?
+  createdAt        DateTime  @default(now())
+  reports          AvailabilityReport[]
+  aggregates       StatusAggregate[]
+  users            User[]    @relation("PharmacyUsers")
+
+  @@index([lat, lng])
+}
+
+model Drug {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  ndc       String?        @unique
+  form      String?
+  strength  String?
+  synonyms  DrugSynonym[]
+  reports   AvailabilityReport[]
+  aggregates StatusAggregate[]
+  watchlists Watchlist[]
+}
+
+model DrugSynonym {
+  id      String @id @default(cuid())
+  name    String
+  drug    Drug   @relation(fields: [drugId], references: [id])
+  drugId  String
+
+  @@unique([drugId, name])
+}
+
+model AvailabilityReport {
+  id          String       @id @default(cuid())
+  drug        Drug         @relation(fields: [drugId], references: [id])
+  drugId      String
+  pharmacy    Pharmacy     @relation(fields: [pharmacyId], references: [id])
+  pharmacyId  String
+  status      ReportStatus
+  source      ReportSource @default(PUBLIC)
+  user        User?        @relation(fields: [userId], references: [id])
+  userId      String?
+  confidence  Float        @default(0)
+  note        String?
+  createdAt   DateTime     @default(now())
+
+  @@index([drugId, pharmacyId, createdAt])
+}
+
+model StatusAggregate {
+  id             String       @id @default(cuid())
+  drug           Drug         @relation(fields: [drugId], references: [id])
+  drugId         String
+  pharmacy       Pharmacy     @relation(fields: [pharmacyId], references: [id])
+  pharmacyId     String
+  status         ReportStatus
+  confidence     Float        @default(0)
+  lastVerifiedAt DateTime     @default(now())
+
+  @@unique([drugId, pharmacyId])
+  @@index([drugId, status])
+}
+
+model Flag {
+  id          String        @id @default(cuid())
+  entityType  FlagEntityType
+  entityId    String
+  reason      String
+  createdBy   User          @relation("FlagCreator", fields: [createdById], references: [id])
+  createdById String
+  state       FlagState     @default(OPEN)
+  createdAt   DateTime      @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  actorId   String?
+  action    String
+  entity    String
+  delta     Json?
+  timestamp DateTime @default(now())
+}
+
+model Watchlist {
+  id        String  @id @default(cuid())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  drug      Drug    @relation(fields: [drugId], references: [id])
+  drugId    String
+  lat       Float
+  lng       Float
+  radiusKm  Float   @default(10)
+}
