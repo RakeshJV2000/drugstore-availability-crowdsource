@@ -10,12 +10,15 @@ type Props = {
   zoom?: number;
   markers?: MapMarker[];
   className?: string;
+  enablePick?: boolean;
+  onPick?: (pos: { lat: number; lng: number }) => void;
 };
 
-export default function Map({ center, zoom = 12, markers = [], className }: Props) {
+export default function Map({ center, zoom = 12, markers = [], className, enablePick = false, onPick }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MLMap | null>(null);
   const markerObjsRef = useRef<Marker[]>([]);
+  const pickMarkerRef = useRef<Marker | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -29,7 +32,19 @@ export default function Map({ center, zoom = 12, markers = [], className }: Prop
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
+    const clickHandler = (e: any) => {
+      if (!enablePick || !onPick) return;
+      const { lng, lat } = e.lngLat || {};
+      if (typeof lng !== 'number' || typeof lat !== 'number') return;
+      if (pickMarkerRef.current) pickMarkerRef.current.remove();
+      const pm = new maplibregl.Marker({ color: '#2563eb' }).setLngLat([lng, lat]).addTo(map);
+      pickMarkerRef.current = pm;
+      onPick({ lat, lng });
+    };
+    map.on('click', clickHandler);
     return () => {
+      map.off('click', clickHandler);
+      if (pickMarkerRef.current) { pickMarkerRef.current.remove(); pickMarkerRef.current = null; }
       map.remove();
       mapRef.current = null;
     };
@@ -60,4 +75,3 @@ export default function Map({ center, zoom = 12, markers = [], className }: Prop
 
   return <div ref={containerRef} className={className ?? "w-full h-96 rounded-md border"} />;
 }
-

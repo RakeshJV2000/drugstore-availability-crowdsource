@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
@@ -19,6 +20,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import Link from "next/link";
 
 export default function ReportPage() {
+  const Map = useMemo(() => dynamic(() => import("@/components/Map"), { ssr: false }), []);
   const { user, isLoading } = useUser();
   const [form, setForm] = useState({
     drug: "",
@@ -175,6 +177,18 @@ export default function ReportPage() {
           <Button type="button" variant="outline" onClick={useMyLocation}>
             Use my location
           </Button>
+        </div>
+
+        <div className="mt-2">
+          {/* lightweight dynamic import usage */}
+          {/* @ts-ignore */}
+          <Map
+            className="w-full h-64 rounded-md border"
+            center={form.lat && form.lng ? { lat: parseFloat(form.lat), lng: parseFloat(form.lng) } : null}
+            markers={form.lat && form.lng ? [{ lat: parseFloat(form.lat), lng: parseFloat(form.lng), label: "Selected" }] : []}
+            enablePick
+            onPick={({ lat, lng }) => setForm(f => ({ ...f, lat: lat.toString(), lng: lng.toString() }))}
+          />
         </div>
 
         <div className="grid gap-1">

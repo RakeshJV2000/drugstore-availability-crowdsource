@@ -14,7 +14,7 @@ type Props = {
   types?: string; // e.g., "address" or "poi,address"
 };
 
-type Suggestion = { label: string; lat: number; lng: number; title?: string };
+type Suggestion = { label: string; lat: number; lng: number; title?: string; kind?: "poi" | "address" };
 
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, proximity, className, types = "address" }: Props) {
   const key = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
@@ -49,6 +49,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         const mapped: Suggestion[] = feats.map((f: any) => ({
           label: f?.place_name || f?.place_name_en || f?.text || "Unknown",
           title: f?.text || f?.properties?.name,
+          kind: Array.isArray(f?.place_type) && f.place_type.includes('poi') ? 'poi' : 'address',
           lat: Array.isArray(f?.center) ? Number(f.center[1]) : Number(f?.geometry?.coordinates?.[1]),
           lng: Array.isArray(f?.center) ? Number(f.center[0]) : Number(f?.geometry?.coordinates?.[0]),
         })).filter(s => Number.isFinite(s.lat) && Number.isFinite(s.lng));
@@ -93,6 +94,9 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
               onClick={() => pick(s)}
               className="block w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
+              <span className="mr-2 inline-block px-1.5 py-0.5 rounded border text-xs text-neutral-600 dark:text-neutral-300">
+                {s.kind === 'poi' ? 'POI' : 'Addr'}
+              </span>
               {s.label}
             </button>
           ))}
