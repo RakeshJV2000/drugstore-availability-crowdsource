@@ -16,6 +16,7 @@ type SearchResult = {
     address: string;
     lat: number;
     lng: number;
+    kind:string;
   };
   // Drug mode fields
   status?: string;
