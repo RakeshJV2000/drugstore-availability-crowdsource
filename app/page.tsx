@@ -33,6 +33,7 @@ export default function HomePage() {
   const [drug, setDrug] = useState("");
   const [storeQ, setStoreQ] = useState("");
   const [storeInput, setStoreInput] = useState("");
+  const [storeQueryMode, setStoreQueryMode] = useState<"brand" | "address" | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [hideNoData, setHideNoData] = useState(false);
   const [lat, setLat] = useState("");
@@ -43,6 +44,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gotGeo, setGotGeo] = useState(false);
+  const [centerSource, setCenterSource] = useState<"geo" | "search" | "pick" | null>(null);
 
   const Map = useMemo(() => dynamic(() => import("@/components/Map"), { ssr: false }), []);
   const [pickOnMap, setPickOnMap] = useState(false);
@@ -74,10 +76,13 @@ export default function HomePage() {
     setResults(null);
     try {
       const params = new URLSearchParams({ lat, lng, radiusMi: radius, mode });
-      if (mode === "drug") params.set("drug", drug);
-      else {
-        const q = selectedBrands.length > 0 ? selectedBrands.join(",") : (storeQ || storeInput);
-        params.set("q", q);
+      if (mode === "drug") {
+        params.set("drug", drug);
+      } else {
+        let q = "";
+        if (selectedBrands.length > 0) q = selectedBrands.join(",");
+        else if (storeQueryMode === "brand") q = storeQ || storeInput;
+        if (q) params.set("q", q);
       }
       const res = await fetch(`/api/search?${params.toString()}`);
       if (!res.ok) throw new Error(await res.text());
@@ -152,18 +157,14 @@ export default function HomePage() {
         setLat(pos.coords.latitude.toString());
         setLng(pos.coords.longitude.toString());
         setGotGeo(true);
+        setCenterSource("geo");
       },
       (err) => setError(err.message || "Failed to get location"),
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
     );
   };
 
-  useEffect(() => {
-    if (!gotGeo && !lat && !lng) {
-      useMyLocation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Only use location when user explicitly clicks the button.
 
   return (
     <div className="grid gap-4">
@@ -175,9 +176,17 @@ export default function HomePage() {
       <Map
         className="w-full h-[420px] rounded-md border"
         center={lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null}
-        markers={[...(lat && lng ? [{ lat: parseFloat(lat), lng: parseFloat(lng), label: "You" }] : []), ...((displayedResults || []) as SearchResult[]).map(r => ({ lat: r.pharmacy.lat, lng: r.pharmacy.lng, label: r.pharmacy.name }))]}
+        markers={[
+          ...(lat && lng ? [{ lat: parseFloat(lat), lng: parseFloat(lng), label: centerSource === 'geo' ? 'You' : 'Center', color: centerSource === 'geo' ? '#22c55e' : undefined, popup: centerSource === 'geo' ? 'Your location' : 'Search center' }] : []),
+          ...((displayedResults || []) as SearchResult[]).map(r => ({
+            lat: r.pharmacy.lat,
+            lng: r.pharmacy.lng,
+            label: r.pharmacy.name,
+            popup: `${r.pharmacy.name}\n${r.pharmacy.address}`,
+          }))
+        ]}
         enablePick={pickOnMap}
-        onPick={({ lat: plat, lng: plng }) => { setLat(plat.toString()); setLng(plng.toString()); setGotGeo(true); }}
+        onPick={({ lat: plat, lng: plng }) => { setLat(plat.toString()); setLng(plng.toString()); setGotGeo(true); setCenterSource('pick'); }}
       />
 
       <div className="grid gap-3 max-w-xl">
@@ -203,13 +212,15 @@ export default function HomePage() {
             <Label htmlFor="store">Store or address</Label>
             <AddressAutocomplete
               value={storeInput}
-              onChange={setStoreInput}
+              onChange={(v) => { setStoreInput(v); setStoreQueryMode(null); }}
               onSelect={(s) => {
                 setStoreInput(s.label);
                 // Use the feature title (brand/name) for store query when available
-                if (s.title) setStoreQ(s.title);
+                if (s.kind === 'poi') { setStoreQ(s.title || s.label); setStoreQueryMode('brand'); }
+                else { setStoreQ(""); setStoreQueryMode('address'); }
                 setLat(s.lat.toString());
                 setLng(s.lng.toString());
+                setCenterSource("search");
               }}
               placeholder="Type store name (e.g., Walgreens) or address"
               proximity={lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null}
@@ -243,7 +254,8 @@ export default function HomePage() {
             <AddressAutocomplete
               value={centerAddr}
               onChange={setCenterAddr}
-              onSelect={(s) => { setCenterAddr(s.label); setLat(s.lat.toString()); setLng(s.lng.toString()); setGotGeo(true); }}
+              onSelect={(s) => { setCenterAddr(s.label); setLat(s.lat.toString()); setLng(s.lng.toString()); setGotGeo(true); setCenterSource("search"); }}
+              
               placeholder="Search a place or address to set center"
               proximity={lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null}
               types="poi,address"

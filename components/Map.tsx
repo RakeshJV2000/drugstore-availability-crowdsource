@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import maplibregl, { Map as MLMap, Marker } from "maplibre-gl";
 
-export type MapMarker = { lat: number; lng: number; label?: string };
+export type MapMarker = { lat: number; lng: number; label?: string; address?: string; color?: string; popup?: string; popupHtml?: string };
 
 type Props = {
   center: { lat: number; lng: number } | null;
@@ -65,10 +65,16 @@ export default function Map({ center, zoom = 12, markers = [], className, enable
     markerObjsRef.current = [];
     // Add new markers
     markers.forEach((m) => {
-      const marker = new maplibregl.Marker()
+      const marker = new maplibregl.Marker(m.color ? { color: m.color } : undefined)
         .setLngLat([m.lng, m.lat])
-        .setPopup(m.label ? new maplibregl.Popup({ offset: 12 }).setText(m.label) : undefined)
         .addTo(map);
+      if (m.popupHtml) {
+        marker.setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(m.popupHtml));
+      } else if (m.popup) {
+        marker.setPopup(new maplibregl.Popup({ offset: 12 }).setText(m.popup));
+      } else if (m.label) {
+        marker.setPopup(new maplibregl.Popup({ offset: 12 }).setText(m.label));
+      }
       markerObjsRef.current.push(marker);
     });
   }, [markers]);
