@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const results = pharmacies
       .map((p) => ({
         pharmacy: { id: p.id, name: p.name, address: p.address, lat: p.lat, lng: p.lng },
-        outDrugs: p.aggregates.map((a) => ({ id: a.drugId, name: a.drug.name })),
+        outDrugs: p.aggregates.map((a) => ({ id: a.drugId, name: a.drug.name, lastVerifiedAt: a.lastVerifiedAt })),
         distanceKm: haversineKm(lat, lng, p.lat, p.lng),
       }))
       .filter((r) => r.distanceKm <= radiusKm)

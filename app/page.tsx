@@ -21,7 +21,7 @@ type SearchResult = {
   confidence?: number;
   lastVerifiedAt?: string;
   // Store mode fields
-  outDrugs?: { id: string; name: string }[];
+  outDrugs?: { id: string; name: string; lastVerifiedAt?: string }[];
   distanceKm: number;
 };
 
@@ -166,7 +166,12 @@ export default function HomePage() {
                     </div>
                   ) : (
                     <div className="text-right text-sm">
-                      <div>OUT: {(r.outDrugs || []).slice(0,3).map(d => d.name).join(', ') || '—'}</div>
+                      <div>
+                        OUT: {(r.outDrugs || []).slice(0,3).map(d => {
+                          const ts = d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : null;
+                          return ts ? `${d.name} (${ts})` : d.name;
+                        }).join(', ') || '—'}
+                      </div>
                       {(r.outDrugs && r.outDrugs.length > 3) && <div>+{r.outDrugs.length - 3} more</div>}
                       <div>Distance: {r.distanceKm.toFixed(1)} km</div>
                     </div>
