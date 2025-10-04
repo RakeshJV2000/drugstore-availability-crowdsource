@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ReportSource, ReportStatus } from "@prisma/client";
 import { recomputeAggregate } from "@/lib/aggregate";
+import { requireSessionUser } from "@/lib/auth";
 import { getClientIp } from "@/lib/request";
 import { rateLimit } from "@/lib/rateLimit";
 
@@ -40,6 +41,7 @@ async function findOrCreatePharmacy(input?: Body["pharmacy"]) {
 
 export async function POST(req: Request) {
   try {
+    const sessionUser = await requireSessionUser();
     const ip = getClientIp(req);
     if (!rateLimit("reports:post", ip, 20, 60_000)) {
       return new NextResponse("Rate limit exceeded", { status: 429 });
@@ -62,6 +64,7 @@ export async function POST(req: Request) {
         pharmacyId: pharmacy.id,
         status,
         source: ReportSource.PUBLIC,
+        userId: sessionUser.id,
         note: body.note?.slice(0, 500)
       }
     });

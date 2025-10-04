@@ -19,6 +19,8 @@ This file tracks what’s already done and what you still need to do, both for t
 - Home UI: added clear toggle “Search by: Drug | Store”, geolocation button, and improved inputs/buttons.
 - API: extended `GET /api/search` to support `mode=store` with `q=<store>` returning OUT drugs per store.
 - Kept existing drug search flow intact; map markers now render for results.
+- UI polish: shadcn-style inputs/buttons/select/textarea; toasts; dark mode + toggle; improved buttons affordance.
+- Auth gating (scaffold): Added Auth0 routes and UI; `POST /api/reports` now requires sign-in; created user records with pseudonymous `handle`.
 
 ## Next Steps (Run Locally, Offline)
 1. Install requirements: Node 18+ and local PostgreSQL 14+.
@@ -41,6 +43,7 @@ This file tracks what’s already done and what you still need to do, both for t
 - Enrich drug data (synonyms, forms) via a local import script.
 - Add a lightweight moderation queue view for reports (not just flags).
 - Basic analytics page (counts by drug/location, recent updates).
+- Wire up Auth0 fully (install deps, envs); show handle in header; optional profile page.
 
 ## UI Upgrade (shadcn/ui) — Planned
 - Initialize shadcn/ui and add base components (Button, Input, Label, Select, Toggle, Toast).

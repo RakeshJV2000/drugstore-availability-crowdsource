@@ -1,7 +1,24 @@
 "use client";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { useUser } from "@auth0/nextjs-auth0/client";
+import Link from "next/link";
 
 export default function ReportPage() {
+  const { user, isLoading } = useUser();
   const [form, setForm] = useState({
     drug: "",
     status: "IN_STOCK",
@@ -9,16 +26,12 @@ export default function ReportPage() {
     address: "",
     lat: "",
     lng: "",
-    note: ""
+    note: "",
   });
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
     setLoading(true);
-    setMessage(null);
-    setError(null);
     try {
       const res = await fetch("/api/reports", {
         method: "POST",
@@ -26,15 +39,28 @@ export default function ReportPage() {
         body: JSON.stringify({
           drug: form.drug,
           status: form.status,
-          pharmacy: { name: form.pharmacyName, address: form.address, lat: parseFloat(form.lat), lng: parseFloat(form.lng) },
-          note: form.note
-        })
+          pharmacy: {
+            name: form.pharmacyName,
+            address: form.address,
+            lat: parseFloat(form.lat),
+            lng: parseFloat(form.lng),
+          },
+          note: form.note,
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
-      setMessage("Report submitted. Thank you!");
-      setForm({ drug: "", status: "IN_STOCK", pharmacyName: "", address: "", lat: "", lng: "", note: "" });
+      toast({ title: "Report submitted", description: "Thanks for contributing!" });
+      setForm({
+        drug: "",
+        status: "IN_STOCK",
+        pharmacyName: "",
+        address: "",
+        lat: "",
+        lng: "",
+        note: "",
+      });
     } catch (e: any) {
-      setError(e.message || "Submission failed");
+      toast({ title: "Submission failed", description: e.message || "Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -42,40 +68,127 @@ export default function ReportPage() {
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation not supported");
+      toast({ title: "Geolocation not supported", variant: "destructive" });
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setForm((f) => ({ ...f, lat: pos.coords.latitude.toString(), lng: pos.coords.longitude.toString() }));
+        setForm((f) => ({
+          ...f,
+          lat: pos.coords.latitude.toString(),
+          lng: pos.coords.longitude.toString(),
+        }));
       },
-      (err) => setError(err.message || "Failed to get location"),
+      (err) => toast({ title: "Location error", description: err.message || "Failed to get location", variant: "destructive" }),
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 10000 }
     );
   };
 
-  return (
-    <div>
-      <h1>Submit Availability Report</h1>
-      <div style={{ display: 'grid', gap: 8, maxWidth: 640 }}>
-        <input placeholder="Drug name or NDC" value={form.drug} onChange={(e) => setForm({ ...form, drug: e.target.value })} />
-        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-          <option value="IN_STOCK">In stock</option>
-          <option value="LOW">Low</option>
-          <option value="OUT">Out</option>
-          <option value="UNKNOWN">Unknown</option>
-        </select>
-        <input placeholder="Pharmacy name" value={form.pharmacyName} onChange={(e) => setForm({ ...form, pharmacyName: e.target.value })} />
-        <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input placeholder="Latitude" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} />
-          <input placeholder="Longitude" value={form.lng} onChange={(e) => setForm({ ...form, lng: e.target.value })} />
-          <button type="button" onClick={useMyLocation}>Use my location</button>
+  const disabled =
+    loading || !form.drug || !form.pharmacyName || !form.address || !form.lat || !form.lng;
+
+  if (!user && !isLoading) {
+    return (
+      <div className="grid gap-4 max-w-2xl">
+        <div className="grid gap-1">
+          <h1 className="text-xl font-semibold">Sign in to submit a report</h1>
+          <p className="text-sm text-neutral-600">Reporting is gated to signed-in users to reduce spam and enable moderation.</p>
         </div>
-        <textarea placeholder="Optional note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-        <button onClick={submit} disabled={loading || !form.drug || !form.pharmacyName || !form.address || !form.lat || !form.lng}>Submit</button>
-        {message && <div style={{ color: 'green' }}>{message}</div>}
-        {error && <div style={{ color: 'crimson' }}>{error}</div>}
+        <div>
+          <Button asChild>
+            <Link href="/api/auth/login">Sign in with Auth0</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-1">
+        <h1 className="text-xl font-semibold">Submit Availability Report</h1>
+        <p className="text-sm text-neutral-600">
+          Share what you see at your local pharmacy.
+        </p>
+      </div>
+
+      <div className="grid gap-3 max-w-2xl">
+        <div className="grid gap-1">
+          <Label htmlFor="drug">Drug</Label>
+          <Input
+            id="drug"
+            placeholder="Drug name or NDC"
+            value={form.drug}
+            onChange={(e) => setForm({ ...form, drug: e.target.value })}
+          />
+        </div>
+
+        <div className="grid gap-1">
+          <Label>Status</Label>
+          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="IN_STOCK">In stock</SelectItem>
+              <SelectItem value="LOW">Low</SelectItem>
+              <SelectItem value="OUT">Out</SelectItem>
+              <SelectItem value="UNKNOWN">Unknown</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-1">
+          <Label htmlFor="pharmacyName">Pharmacy name</Label>
+          <Input
+            id="pharmacyName"
+            placeholder="e.g., Walgreens on 3rd"
+            value={form.pharmacyName}
+            onChange={(e) => setForm({ ...form, pharmacyName: e.target.value })}
+          />
+        </div>
+
+        <div className="grid gap-1">
+          <Label htmlFor="address">Address</Label>
+          <Input
+            id="address"
+            placeholder="123 Main St, City, ST"
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <Input
+            placeholder="Latitude"
+            value={form.lat}
+            onChange={(e) => setForm({ ...form, lat: e.target.value })}
+          />
+          <Input
+            placeholder="Longitude"
+            value={form.lng}
+            onChange={(e) => setForm({ ...form, lng: e.target.value })}
+          />
+          <Button type="button" variant="outline" onClick={useMyLocation}>
+            Use my location
+          </Button>
+        </div>
+
+        <div className="grid gap-1">
+          <Label htmlFor="note">Note (optional)</Label>
+          <Textarea
+            id="note"
+            placeholder="Add context (e.g., forms, quantity limits, staff notes)"
+            value={form.note}
+            onChange={(e) => setForm({ ...form, note: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Button onClick={submit} disabled={disabled}>
+            {loading ? "Submitting..." : "Submit"}
+          </Button>
+        </div>
       </div>
     </div>
   );

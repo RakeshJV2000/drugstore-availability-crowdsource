@@ -18,8 +18,10 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm",
+      "flex h-9 w-full items-center justify-between rounded-md border px-3 py-2 text-sm shadow-sm",
+      "border-neutral-300 bg-white text-neutral-900",
       "placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-400",
+      "dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:ring-neutral-600",
       className
     )}
     {...props}
@@ -63,6 +65,7 @@ const SelectContent = React.forwardRef<
         "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-white text-neutral-900 shadow-md",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
+        "dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100",
         className
       )}
       position={position}
@@ -115,7 +118,7 @@ const SelectSeparator = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-neutral-200", className)} {...props} />
+  <SelectPrimitive.Separator ref={ref} className={cn("-mx-1 my-1 h-px bg-neutral-200 dark:bg-neutral-800", className)} {...props} />
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
@@ -129,4 +132,3 @@ export {
   SelectItem,
   SelectSeparator,
 };
-

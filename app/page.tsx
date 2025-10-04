@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 type SearchResult = {
   pharmacy: {
@@ -92,10 +93,18 @@ export default function HomePage() {
         markers={(results || []).map(r => ({ lat: r.pharmacy.lat, lng: r.pharmacy.lng, label: r.pharmacy.name }))}
       />
 
-      <div className="grid gap-2 max-w-xl">
-        <div className="inline-flex rounded-md border overflow-hidden w-fit">
-          <Button variant={mode === "drug" ? "default" : "ghost"} onClick={() => setMode("drug")}>Drug</Button>
-          <Button variant={mode === "store" ? "default" : "ghost"} onClick={() => setMode("store")}>Store</Button>
+      <div className="grid gap-3 max-w-xl">
+        <div className="grid gap-1 max-w-xs">
+          <Label>Search by</Label>
+          <Select value={mode} onValueChange={(v: "drug"|"store") => setMode(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="drug">Drug</SelectItem>
+              <SelectItem value="store">Store</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {mode === "drug" ? (
           <div className="grid gap-1">
